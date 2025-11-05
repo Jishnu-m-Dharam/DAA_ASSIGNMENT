@@ -1,58 +1,92 @@
-import time
-import random
-data = [random.randint(1, 1000) for _ in range(1000)]
-def clone():
-    return data.copy()
-def insertion_sort(arr):
-    comparisons = 0
-    start = time.time()
-    for i in range(1, len(arr)):
-        key = arr[i]
-        j = i - 1
-        while j >= 0 and arr[j] > key:
-            comparisons += 1
-            arr[j + 1] = arr[j]
-            j -= 1
-        if j >= 0:
-            comparisons += 1
-        arr[j + 1] = key
-    end = time.time()
-    return round(end - start, 5), comparisons
-def merge_sort(arr):
-    comparisons = 0
-    start = time.time()
-    def merge_sort_recursive(arr):
-        nonlocal comparisons
-        if len(arr) > 1:
-            mid = len(arr) // 2
-            L = arr[:mid]
-            R = arr[mid:]
-            merge_sort_recursive(L)
-            merge_sort_recursive(R)
-            i = j = k = 0
-            while i < len(L) and j < len(R):
-                comparisons += 1
-                if L[i] < R[j]:
-                    arr[k] = L[i]
-                    i += 1
-                else:
-                    arr[k] = R[j]
-                    j += 1
-                k += 1
-            while i < len(L):
-                arr[k] = L[i]
-                i += 1
-                k += 1
-            while j < len(R):
-                arr[k] = R[j]
-                j += 1
-                k += 1
 
-    merge_sort_recursive(arr)
-    end = time.time()
-    return round(end - start, 5), comparisons
-insertion_time, insertion_comparisons = insertion_sort(clone())
-merge_time, merge_comparisons = merge_sort(clone())
-print("\nEmpirical Comparison: Insertion vs Merge Sort")
-print("Insertion Sort - Time:", insertion_time, "seconds,", "Comparisons:", insertion_comparisons)
-print("Merge Sort     - Time:", merge_time, "seconds,", "Comparisons:", merge_comparisons)
+import math
+
+def distance(p1, p2):
+  x_dist = p1[0] - p2[0]
+  y_dist = p1[1] - p2[1]
+
+  return (x_dist**2 + y_dist**2)**0.5
+
+def bruteForce(points):
+  min_dist = float('inf')
+  best_pair = (None, None)
+  n = len(points)
+
+  for i in range(n):
+    for j in range(i + 1, n):
+      d = distance(points[i], points[j])
+      if d < min_dist:
+        min_dist = d
+        best_pair = (points[i], points[j])
+
+  return min_dist, best_pair
+
+def closestRecursive(points_sorted):
+  n = len(points_sorted)
+  if n <= 3:
+    return bruteForce(points_sorted)
+
+  mid_index = n // 2
+  left = points_sorted[:mid_index]
+  right = points_sorted[mid_index:]
+
+  mid_line = points_sorted[mid_index - 1][0]
+
+  (d1, pair1) = closestRecursive(left)
+  (d2, pair2) = closestRecursive(right)
+
+  if d1 < d2:
+    temp = d1
+    best_pair = pair1
+  else:
+    temp = d2
+    best_pair = pair2
+
+  # Points in the original list that are within the minimum distance of the dividing line
+  strip = [p for p in points_sorted if abs(p[0] - mid_line) < temp]
+
+  # Sorting the strip by the y-coordinates
+  strip.sort(key = lambda p: p[1])
+
+  # Best pair in the (y-sorted) strip
+  min_dist_strip = temp
+  best_pair_strip = best_pair
+
+  n_strip = len(strip)
+  for i in range(n_strip):
+    for j in range(i + 1, n_strip):
+      # If y-distance is greater than the minimum distance of the strip break the loop as the rest of the list will only contain greater values
+      if (strip[j][1] - strip[i][1]) >= min_dist_strip:
+        break
+
+      d_strip = distance(strip[i], strip[j])
+      if d_strip < min_dist_strip:
+        min_dist_strip = d_strip
+        best_pair_strip = (strip[i], strip[j])
+
+  if min_dist_strip < temp:
+    return min_dist_strip, best_pair_strip
+  else:
+    return temp, best_pair
+
+def closestPair(points):
+  if len(points) < 2:
+    return float('inf'), (None, None)
+
+  # Sorting points by the x-coordinates
+  points_sorted = sorted(points, key = lambda p: p[0])
+
+  min_dist, pair = closestRecursive(points_sorted)
+  return min_dist, pair
+
+points = [
+    (2, 3), (12, 30), (40, 50), (5, 1),
+    (12, 10), (6, 7), (1, 100), (4, 4)
+]
+
+min_distance, pair = closestPair(points)
+
+print(f"Points: {points}")
+print("---")
+print(f"Closest pair: {pair}")
+print(f"Minimum distance: {min_distance:.4f}")
